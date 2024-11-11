@@ -20,7 +20,7 @@ from utils import resolve_ref, format_header, format_description, pascal_to_kebe
 from structures import PROPERTY, CLASS_DEFINITION
 
 def format_property (prop_class:str, prop_name:str, is_array:bool=False, default_value:str|None=None) -> str:
-    return ('    ' + PROPERTY + '\n').format(
+    return PROPERTY.format(
         prop_class,
         prop_name.lower(),
         f'default = {default_value}; ' if default_value else ''
@@ -46,7 +46,7 @@ def create_object (namespace:str, model_name:str, model_properties:dict, ref:str
             file.write('\n')
 
             if 'description' in prop_data:
-                file.write(format_description(prop_data['description']))
+                file.write(format_description(prop_data['description']) + '\n')
 
             if 'allOf' in prop_data:
                 file.write(format_property(

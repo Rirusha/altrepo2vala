@@ -32,8 +32,22 @@ HEADER = """/*
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
- */"""
+ */
 
-PROPERTY = "public {0} {1} {{ get; set; {2}}}"
+// THIS CODE WAS GENERATED, DON'T MODIFY IT"""
+ 
+PROPERTY = '    public {0} {1} {{ get; set; {2}}}\n'
 
 CLASS_DEFINITION = 'public class {0}.{1} : {2}'
+
+CLIENT_CLASS = 'public sealed class {namespace}.Client : Object'
+
+METHOD = '    public {return_type} {name} (\n        {argvn}\n    ) throws CommonError, BadStatusCodeError {{\n    {body}    }}'
+
+API_BASE = '    internal const string API_BASE = "{api_base}";\n\n'
+
+SOUP_WRAPPER = '    SoupWrapper soup_wrapper { get; default = new SoupWrapper (); }\n\n'
+
+CONSTRUCT = '    construct {\n\n    }\n'
+
+ARG = '{arg_type} {name}{default}'

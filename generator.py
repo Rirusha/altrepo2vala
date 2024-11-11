@@ -21,14 +21,17 @@ import sys
 
 from utils import fix_type, resolve_ref
 from object_defs import create_object
+from client_defs import create_client
 import global_args
 
 
 # doc_url = sys.argv[1]
-# author = sys.argv[2]
-# namespace = sys.argv[3]
-# target_path = sys.argv[4]
+# api_base = sys.argv[2]
+# author = sys.argv[3]
+# namespace = sys.argv[4]
+# target_path = sys.argv[5]
 doc_url = 'https://rdb.altlinux.org/api/swagger.json'
+api_base = 'https://rdb.altlinux.org/api/'
 author = 'Vladimir Vaskov'
 namespace = 'AltRepo'
 target_path = '/home/rirusha/Downloads/doc'
@@ -59,3 +62,5 @@ for model_name, obj in swagger_doc['definitions'].items():
             create_object(namespace, fix_type(model_name), final_model['properties'], ref, target_path)
         case _:
             raise TypeError ()
+
+create_client (namespace, api_base, swagger_doc['paths'], target_path)

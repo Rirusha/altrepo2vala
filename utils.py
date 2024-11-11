@@ -17,7 +17,7 @@
 
 from datetime import datetime
 
-from structures import HEADER
+from structures import ARG, HEADER, METHOD
 import global_args
 
 def remove_end(target:str, end:str) -> str:
@@ -38,8 +38,51 @@ def pascal_to_kebeb(camel_string:str) -> str:
 def fix_type(_type:str) -> str:
     return(remove_end(_type, 'Model'))
 
-def format_description(description:str) -> str:
-    return f'    /**\n     * {description}\n     */\n'
+def format_description(description:list[str]|str) -> str:
+    out = ['    /**']
+
+    if type(description) is str:
+        out.append(f'     * {description}')
+    elif type(description) is list:
+        for line in description:
+            out.append(f'     * {line}')
+    else:
+        raise TypeError()
+
+    out.append('     */')
+
+    return '\n'.join(out)
+
+def format_arg(name:str, arg_type:str, nullable:bool, default:str|None) -> str:
+    if default is None and nullable:
+        default = 'null'
+
+    if default is not None:
+        if arg_type == 'bool':
+            default = default.lower()
+        elif default == 'null':
+            pass
+        elif arg_type == 'string':
+            default = f'"{default}"'
+    
+    return ARG.format(
+        arg_type=arg_type + '?' if nullable else arg_type,
+        name=name,
+        default=' = ' + default if default is not None else ''
+    )
+
+def format_method(return_type:str, name:str, argv:list[str], body:list[str], async_:bool):
+    if async_:
+        argv.append('int priority = Priority.DEFAULT')
+    argv.append('Cancellable? cancellable = null')
+    
+    return METHOD.format(
+        return_type=return_type,
+        name=name,
+        argvn=',\n        '.join(argv),
+        body='\n        '.join(body)
+    )
+
 
 def resolve_ref (ref:str) -> str:
     return fix_type(ref.lstrip('#/definitions/').replace('/', '.'))
