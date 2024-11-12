@@ -68,8 +68,12 @@ def create_object (namespace:str, model_name:str, model_properties:dict, ref:str
                     ))
                 else:
                     _type = prop_data['items']['type']
-                    if _type == 'integer':
-                        _type = 'int64'
+                    if _type == 'integer' or _type == 'number':
+                        _type = 'int64?'
+                    elif _type == 'boolean':
+                        _type = 'bool'
+                    elif _type == 'object':
+                        _type = 'Object'
 
                     file.write(format_property(
                         f'Gee.ArrayList<{_type}>',
@@ -79,8 +83,12 @@ def create_object (namespace:str, model_name:str, model_properties:dict, ref:str
                     ))
             else:
                 _type = prop_data['type']
-                if _type == 'integer':
+                if _type == 'integer' or _type == 'number':
                     _type = 'int64'
+                elif _type == 'boolean':
+                    _type = 'bool'
+                elif _type == 'object':
+                    _type = 'Object'
                 
                 file.write(format_property(
                     _type,

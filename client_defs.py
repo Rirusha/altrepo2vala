@@ -136,7 +136,8 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                     argv = []
                     argvd = []
                     
-                    param_names = []
+                    # {name: is_array}
+                    param_args = {}
                     body_name = None
                     
                     for parameter in definition.get('parameters', []):
@@ -170,7 +171,7 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                         ))
                         
                         if parameter['in'] == 'query':
-                            param_names.append(parameter['name'])
+                            param_args[parameter['name']] = arg_type.endswith('[]')
                         elif (parameter['in'] == 'body'):
                             body_name = parameter['name']
 
@@ -178,34 +179,37 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                     if definition.get('deprecated', False):
                         depricated_version = ''
 
-                    file.write(format_method(return_type, name, argv + path_argv + argvd + path_argvd, format_body(path, param_names, path_arg_names, body_name, method, definition, return_type, async_), async_, depricated_version))
+                    file.write(format_method(return_type, name, argv + path_argv + argvd + path_argvd, format_body(path, param_args, path_arg_names, body_name, method, definition, return_type, async_), async_, depricated_version))
                     file.write('\n')
 
         file.write('}\n')
 
-def format_body(path:str, param_args:list[str], path_args:list[str], body_name:str, method:str, definition:dict[str,dict], return_type:str, async_:str) -> str:
+def format_body(path:str, param_args:dict[str,bool], path_args:list[str], body_name:str, method:str, definition:dict[str,dict], return_type:str, async_:str) -> str:
     out = []
     
     if body_name:
         out.append('PostContent post_content = {')
         out.append('    PostContentType.JSON,')
-        out.append(f'    {'yield ' if async_ else ''}Jsoner.serialize ({body_name}, Case.SNAKE)')
+        out.append(f'    {'yield ' if async_ else ''}Jsoner.serialize{'_async ' if async_ else ''} ({body_name}, Case.SNAKE)')
         out.append('};')
         out.append('')
     
     if param_args:
         params = []
-        for arg in param_args:
-            params.append('    {{ "{arg}", {arg} }},'.format(arg=arg))
+        for arg_name, is_array in param_args.items():
+            if is_array:
+                params.append('    {{ "{arg_name}", string.joinv(",", {arg_name}) }},'.format(arg_name=arg_name))
+            else:
+                params.append('    {{ "{arg_name}", {arg_name}.to_string () }},'.format(arg_name=arg_name))
             
         params.insert(0, '{')
         params.append('},')
     else:
-        params = ['null']
+        params = ['null,']
 
     if method == 'get':
         out.append(f'var bytes = {'yield ' if async_ else ''}soup_wrapper.get{'_async' if async_ else ''} (')
-        out.append(f'    @"$BASE_URL{(path.replace('{' + path_args[0] + '}', f'${path_args[0]}')) if path_args else path}",')
+        out.append(f'    @"$API_BASE{(path.replace('{' + path_args[0] + '}', f'${path_args[0]}')) if path_args else path}",')
         out.append('    null,')
         out.append('    ' + '\n            '.join(params))
         out.append('    null,')
@@ -215,7 +219,7 @@ def format_body(path:str, param_args:list[str], path_args:list[str], body_name:s
         out.append(');')
     elif method == 'post':
         out.append(f'var bytes = {'yield ' if async_ else ''}soup_wrapper.post{'_async' if async_ else ''} (')
-        out.append(f'    @"$BASE_URL{(path.replace('{' + path_args[0] + '}', f'${path_args[0]}')) if path_args else path}",')
+        out.append(f'    @"$API_BASE{(path.replace('{' + path_args[0] + '}', f'${path_args[0]}')) if path_args else path}",')
         out.append('    null,')
         if body_name:
             out.append('    post_content,')
@@ -242,10 +246,10 @@ def format_body(path:str, param_args:list[str], path_args:list[str], body_name:s
     out.append('')
     if return_type.startswith('Gee.ArrayList'):
         out.append(f'var array = new {return_type} ();')
-        out.append(f'{'yield ' if async_ else ''}jsoner.deserialize_array (array);')
+        out.append(f'{'yield ' if async_ else ''}jsoner.deserialize_array{'_async ' if async_ else ''} (array);')
         out.append('')
         out.append('return array;')
     else:
-        out.append(f'return ({return_type}) {'yield ' if async_ else ''}jsoner.deserialize_object (typeof ({return_type}));')
+        out.append(f'return ({return_type}) {'yield ' if async_ else ''}jsoner.deserialize_object{'_async ' if async_ else ''} (typeof ({return_type}));')
     
     return out

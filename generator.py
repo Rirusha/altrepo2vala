@@ -34,7 +34,7 @@ doc_url = 'https://rdb.altlinux.org/api/swagger.json'
 api_base = 'https://rdb.altlinux.org/api'
 author = 'Vladimir Vaskov'
 namespace = 'AltRepo'
-target_path = '/home/rirusha/Downloads/doc'
+target_path = '/home/rirusha/Projects/alt-repo-api-vala/lib'
 
 # CHECK
 

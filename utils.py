@@ -83,6 +83,7 @@ def format_method(return_type:str, name:str, argv:list[str], body:list[str], asy
         ) + '\n'
 
     return prefix + METHOD.format(
+        type_='async ' if async_ else '',
         return_type=return_type,
         name=name,
         argvn=',\n        '.join(argv),

@@ -42,7 +42,7 @@ CLASS_DEFINITION = 'public class {0}.{1} : {2}'
 
 CLIENT_CLASS = 'public sealed class {namespace}.Client : Object'
 
-METHOD = '    public {return_type} {name} (\n        {argvn}\n    ) throws CommonError, BadStatusCodeError {{\n        {body}\n    }}'
+METHOD = '    public {type_}{return_type} {name} (\n        {argvn}\n    ) throws CommonError, BadStatusCodeError {{\n        {body}\n    }}'
 
 API_BASE = '    internal const string API_BASE = "{api_base}";\n\n'
 
