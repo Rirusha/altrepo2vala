@@ -42,7 +42,7 @@ CLASS_DEFINITION = 'public class {0}.{1} : {2}'
 
 CLIENT_CLASS = 'public sealed class {namespace}.Client : Object'
 
-METHOD = '    public {return_type} {name} (\n        {argvn}\n    ) throws CommonError, BadStatusCodeError {{\n    {body}    }}'
+METHOD = '    public {return_type} {name} (\n        {argvn}\n    ) throws CommonError, BadStatusCodeError {{\n        {body}\n    }}'
 
 API_BASE = '    internal const string API_BASE = "{api_base}";\n\n'
 
@@ -51,3 +51,5 @@ SOUP_WRAPPER = '    SoupWrapper soup_wrapper { get; default = new SoupWrapper ()
 CONSTRUCT = '    construct {\n\n    }\n'
 
 ARG = '{arg_type} {name}{default}'
+
+DEPRICATED = '    [Version (deprecated = true, deprecated_since = "{version}")]'

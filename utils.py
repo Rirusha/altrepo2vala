@@ -17,7 +17,7 @@
 
 from datetime import datetime
 
-from structures import ARG, HEADER, METHOD
+from structures import ARG, HEADER, METHOD, DEPRICATED
 import global_args
 
 def remove_end(target:str, end:str) -> str:
@@ -71,12 +71,18 @@ def format_arg(name:str, arg_type:str, nullable:bool, default:str|None) -> str:
         default=' = ' + default if default is not None else ''
     )
 
-def format_method(return_type:str, name:str, argv:list[str], body:list[str], async_:bool):
+def format_method(return_type:str, name:str, argv:list[str], body:list[str], async_:bool, depricated_version:str|None):
     if async_:
         argv.append('int priority = Priority.DEFAULT')
     argv.append('Cancellable? cancellable = null')
     
-    return METHOD.format(
+    prefix = ''
+    if depricated_version is not None:
+        prefix = DEPRICATED.format(
+            version=depricated_version
+        ) + '\n'
+
+    return prefix + METHOD.format(
         return_type=return_type,
         name=name,
         argvn=',\n        '.join(argv),

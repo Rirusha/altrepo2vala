@@ -40,15 +40,55 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
         file.write(SOUP_WRAPPER)
         file.write(CONSTRUCT)
 
-        for type_ in ['sync', 'async']:
-            if type_ == 'async':
-                file.write('\n//ASYNC\n\n')
+        for async_ in [False, True]:
+            if async_:
+                file.write('\n    //ASYNC\n')
 
             for path, methods in paths.items():
                 if ('auth' in path):
                     continue
 
-                path_args = []
+                path_argv = []
+                path_argvd = []
+                
+                path_arg_names = []
+                path_arg_descs = []
+                
+                for parameter in methods.get('parameters', []):
+                    arg_type = None
+                    if ('schema' in parameter):
+                        arg_type = resolve_ref(parameter['schema']['$ref'])
+                    else:
+                        if parameter['type'] == 'integer':
+                            arg_type = 'int64'
+                        elif parameter['type'] == 'boolean':
+                            arg_type = 'bool'
+                        elif parameter['type'] == 'array':
+                            arg_type = parameter['items']['type'] + '[]'
+                        else:
+                            arg_type = parameter['type']
+
+                    default_value = None
+                    if 'default' in parameter:
+                        default_value = str(parameter['default'])
+                        
+                        if default_value == 'none':
+                            default_value = None
+                            
+                    nullable = not parameter.get('required', False)
+
+                    (path_argv if not default_value and not nullable else path_argvd).append(format_arg(
+                        parameter['name'],
+                        arg_type,
+                        not parameter.get('required', False),
+                        default_value
+                    ))
+                    
+                    path_arg_descs.append('@param {name} {desc}'.format(
+                        name=parameter['name'],
+                        desc=parameter.get('description', '')
+                    ))
+                    path_arg_names.append(parameter['name'])
 
                 for method, definition in methods.items():
                     if method == 'parameters':
@@ -64,16 +104,8 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                             name=parameter['name'],
                             desc=parameter.get('description', '')
                         ))
-
-                    file.write('\n')
-                    file.write(format_description([
-                        *definition['description'].split('\n'),
-                        '',
-                        *param_descs
-                    ]))
-                    file.write('\n')
-
-                    name = method + '_' + path.split('{')[0].strip('/').replace('/', '_') + ('_async' if type_ == 'async' else '')
+                        
+                    name = method + '_' + path.replace('{', '').replace('}', '').strip('/').replace('/', '_') + ('_async' if async_ else '')
                     success = definition['responses']['200']
                     if 'schema' in success:
                         if 'type' in success['schema']:
@@ -83,21 +115,37 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                                 else:
                                     return_type = 'Gee.ArrayList<{0}>'.format(resolve_ref(success['schema']['items']['type']))
                         else:
-                            if ('type' in success['schema']):
-                                return_type = resolve_ref(success['schema']['type'])
+                            if ('$ref' in success['schema']):
+                                return_type = resolve_ref(success['schema']['$ref'])
                             else:
                                 return_type = 'void'
                     else:
                         return_type = 'string'
 
+                    file.write('\n')
+                    file.write(format_description([
+                        *definition['description'].split('\n'),
+                        '',
+                        *path_arg_descs,
+                        *param_descs,
+                        '',
+                        '@return {{@link {0}}}'.format(return_type)
+                    ]))
+                    file.write('\n')
+
                     argv = []
+                    argvd = []
+                    
+                    param_names = []
+                    body_name = None
+                    
                     for parameter in definition.get('parameters', []):
                         arg_type = None
                         if ('schema' in parameter):
                             arg_type = resolve_ref(parameter['schema']['$ref'])
                         else:
                             if parameter['type'] == 'integer':
-                                arg_type = 'int'
+                                arg_type = 'int64'
                             elif parameter['type'] == 'boolean':
                                 arg_type = 'bool'
                             elif parameter['type'] == 'array':
@@ -108,15 +156,96 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                         default_value = None
                         if 'default' in parameter:
                             default_value = str(parameter['default'])
+                            
+                            if default_value == 'none':
+                                default_value = None
+                                
+                        nullable = not parameter.get('required', False)
 
-                        argv.append(format_arg(
+                        (argv if not default_value and not nullable else argvd).append(format_arg(
                             parameter['name'],
                             arg_type,
                             not parameter.get('required', False),
                             default_value
                         ))
+                        
+                        if parameter['in'] == 'query':
+                            param_names.append(parameter['name'])
+                        elif (parameter['in'] == 'body'):
+                            body_name = parameter['name']
 
-                    file.write(format_method(return_type, name, argv, "\n", type_ == 'async'))
+                    depricated_version = None
+                    if definition.get('deprecated', False):
+                        depricated_version = ''
+
+                    file.write(format_method(return_type, name, argv + path_argv + argvd + path_argvd, format_body(path, param_names, path_arg_names, body_name, method, definition, return_type, async_), async_, depricated_version))
                     file.write('\n')
 
         file.write('}\n')
+
+def format_body(path:str, param_args:list[str], path_args:list[str], body_name:str, method:str, definition:dict[str,dict], return_type:str, async_:str) -> str:
+    out = []
+    
+    if body_name:
+        out.append('PostContent post_content = {')
+        out.append('    PostContentType.JSON,')
+        out.append(f'    {'yield ' if async_ else ''}Jsoner.serialize ({body_name}, Case.SNAKE)')
+        out.append('};')
+        out.append('')
+    
+    if param_args:
+        params = []
+        for arg in param_args:
+            params.append('    {{ "{arg}", {arg} }},'.format(arg=arg))
+            
+        params.insert(0, '{')
+        params.append('},')
+    else:
+        params = ['null']
+
+    if method == 'get':
+        out.append(f'var bytes = {'yield ' if async_ else ''}soup_wrapper.get{'_async' if async_ else ''} (')
+        out.append(f'    @"$BASE_URL{(path.replace('{' + path_args[0] + '}', f'${path_args[0]}')) if path_args else path}",')
+        out.append('    null,')
+        out.append('    ' + '\n            '.join(params))
+        out.append('    null,')
+        if async_:
+            out.append('    priority,')
+        out.append('    cancellable')
+        out.append(');')
+    elif method == 'post':
+        out.append(f'var bytes = {'yield ' if async_ else ''}soup_wrapper.post{'_async' if async_ else ''} (')
+        out.append(f'    @"$BASE_URL{(path.replace('{' + path_args[0] + '}', f'${path_args[0]}')) if path_args else path}",')
+        out.append('    null,')
+        if body_name:
+            out.append('    post_content,')
+        else:
+            out.append('    null,')
+        out.append('    ' + '\n            '.join(params))
+        out.append('    null,')
+        if async_:
+            out.append('    priority,')
+        out.append('    cancellable')
+        out.append(');')
+    elif method == 'put':
+        raise NotImplementedError (method)
+    elif method == 'delete':
+        raise NotImplementedError (method)
+    else:
+        raise TypeError (f'Unknown method {method}')
+    
+    if return_type == 'string':
+        out.append(f'return (string) bytes.get_data ();')
+    
+    out.append('')
+    out.append('var jsoner = Jsoner.from_bytes (bytes, null, Case.SNAKE);')
+    out.append('')
+    if return_type.startswith('Gee.ArrayList'):
+        out.append(f'var array = new {return_type} ();')
+        out.append(f'{'yield ' if async_ else ''}jsoner.deserialize_array (array);')
+        out.append('')
+        out.append('return array;')
+    else:
+        out.append(f'return ({return_type}) {'yield ' if async_ else ''}jsoner.deserialize_object (typeof ({return_type}));')
+    
+    return out
