@@ -92,6 +92,6 @@ def create_object (namespace:str, model_name:str, model_properties:dict, ref:str
                 
                 file.write(format_property(
                     _type,
-                    prop_name
+                    prop_name if prop_name != 'type' else 'type_'
                 ))
         file.write('}\n')
