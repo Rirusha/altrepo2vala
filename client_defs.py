@@ -190,15 +190,14 @@ def format_body(path:str, param_args:dict[str,bool], path_args:list[str], body_n
     if body_name:
         out.append('PostContent post_content = {')
         out.append('    PostContentType.JSON,')
-        out.append(f'    {'yield ' if async_ else ''}Jsoner.serialize{'_async ' if async_ else ''} ({body_name}, Case.SNAKE)')
-        out.append('};')
-        out.append('')
+        out.append(f'    {'yield ' if async_ else ''}Jsoner.serialize{'_async' if async_ else ''} ({body_name}, Case.SNAKE)')
+        out.append('};\n')
     
     if param_args:
         params = []
         for arg_name, is_array in param_args.items():
             if is_array:
-                params.append('    {{ "{arg_name}", string.joinv(",", {arg_name}) }},'.format(arg_name=arg_name))
+                params.append('    {{ "{arg_name}", string.joinv (",", {arg_name}) }},'.format(arg_name=arg_name))
             else:
                 params.append('    {{ "{arg_name}", {arg_name}.to_string () }},'.format(arg_name=arg_name))
             
@@ -230,7 +229,7 @@ def format_body(path:str, param_args:dict[str,bool], path_args:list[str], body_n
         if async_:
             out.append('    priority,')
         out.append('    cancellable')
-        out.append(');')
+        out.append(');\n')
     elif method == 'put':
         raise NotImplementedError (method)
     elif method == 'delete':
@@ -240,16 +239,16 @@ def format_body(path:str, param_args:dict[str,bool], path_args:list[str], body_n
     
     if return_type == 'string':
         out.append(f'return (string) bytes.get_data ();')
-    
-    out.append('')
-    out.append('var jsoner = Jsoner.from_bytes (bytes, null, Case.SNAKE);')
-    out.append('')
+        return out
+
+    out.append('var jsoner = Jsoner.from_bytes (bytes, null, Case.SNAKE);\n')
+
     if return_type.startswith('Gee.ArrayList'):
         out.append(f'var array = new {return_type} ();')
-        out.append(f'{'yield ' if async_ else ''}jsoner.deserialize_array{'_async ' if async_ else ''} (array);')
-        out.append('')
+        out.append(f'{'yield ' if async_ else ''}jsoner.deserialize_array{'_async' if async_ else ''} (array);\n')
+
         out.append('return array;')
     else:
-        out.append(f'return ({return_type}) {'yield ' if async_ else ''}jsoner.deserialize_object{'_async ' if async_ else ''} (typeof ({return_type}));')
+        out.append(f'return ({return_type}) {'yield ' if async_ else ''}jsoner.deserialize_object{'_async' if async_ else ''} (typeof ({return_type}));')
     
     return out
