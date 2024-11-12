@@ -25,16 +25,12 @@ from client_defs import create_client
 import global_args
 
 
-# doc_url = sys.argv[1]
-# api_base = sys.argv[2]
-# author = sys.argv[3]
-# namespace = sys.argv[4]
-# target_path = sys.argv[5]
+author = sys.argv[1]
+target_path = sys.argv[2]
+
 doc_url = 'https://rdb.altlinux.org/api/swagger.json'
 api_base = 'https://rdb.altlinux.org/api'
-author = 'Vladimir Vaskov'
 namespace = 'AltRepo'
-target_path = '/home/rirusha/Projects/alt-repo-api-vala/lib'
 
 # CHECK
 
