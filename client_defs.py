@@ -136,8 +136,8 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                     argv = []
                     argvd = []
                     
-                    # {name: is_array}
-                    param_args = {}
+                    # {name: [is_array, nullable]}
+                    param_args:dict[str,list[bool]] = {}
                     body_name = None
                     
                     for parameter in definition.get('parameters', []):
@@ -171,7 +171,9 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
                         ))
                         
                         if parameter['in'] == 'query':
-                            param_args[parameter['name']] = arg_type.endswith('[]')
+                            param_args[parameter['name']] = []
+                            param_args[parameter['name']].append (arg_type.endswith('[]'))
+                            param_args[parameter['name']].append (nullable)
                         elif (parameter['in'] == 'body'):
                             body_name = parameter['name']
 
@@ -184,7 +186,7 @@ def create_client (namespace:str, api_base:str, paths:dict, target_path:str):
 
         file.write('}\n')
 
-def format_body(path:str, param_args:dict[str,bool], path_args:list[str], body_name:str, method:str, definition:dict[str,dict], return_type:str, async_:str) -> str:
+def format_body(path:str, param_args:dict[str,list[bool]], path_args:list[str], body_name:str, method:str, definition:dict[str,dict], return_type:str, async_:str) -> str:
     out = []
     
     if body_name:
@@ -195,11 +197,17 @@ def format_body(path:str, param_args:dict[str,bool], path_args:list[str], body_n
     
     if param_args:
         params = []
-        for arg_name, is_array in param_args.items():
+        for arg_name, (is_array, nullable) in param_args.items():
             if is_array:
-                params.append('    {{ "{arg_name}", {arg_name} != null ? string.joinv (",", {arg_name}) : null }},'.format(arg_name=arg_name))
+                if nullable:
+                    params.append('    {{ "{arg_name}", {arg_name} != null ? string.joinv (",", {arg_name}) : null }},'.format(arg_name=arg_name))
+                else:
+                    params.append('    {{ "{arg_name}", string.joinv (",", {arg_name}) }},'.format(arg_name=arg_name))
             else:
-                params.append('    {{ "{arg_name}", {arg_name} != null ? {arg_name}.to_string () : null }},'.format(arg_name=arg_name))
+                if nullable:
+                    params.append('    {{ "{arg_name}", {arg_name} != null ? {arg_name}.to_string () : null }},'.format(arg_name=arg_name))
+                else:
+                    params.append('    {{ "{arg_name}", {arg_name}.to_string () }},'.format(arg_name=arg_name))
             
         params.insert(0, '{')
         params.append('},')
