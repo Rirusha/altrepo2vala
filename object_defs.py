@@ -39,7 +39,7 @@ def create_object (namespace:str, model_name:str, model_properties:dict, ref:str
         file.write((CLASS_DEFINITION + ' {{\n').format(
             namespace,
             model_name,
-            ref if ref else 'Object'            
+            ref if ref else 'Object'
         ))
 
         for prop_name, prop_data in model_properties.items():

@@ -197,9 +197,9 @@ def format_body(path:str, param_args:dict[str,bool], path_args:list[str], body_n
         params = []
         for arg_name, is_array in param_args.items():
             if is_array:
-                params.append('    {{ "{arg_name}", string.joinv (",", {arg_name}) }},'.format(arg_name=arg_name))
+                params.append('    {{ "{arg_name}", {arg_name} != null ? string.joinv (",", {arg_name}) : null }},'.format(arg_name=arg_name))
             else:
-                params.append('    {{ "{arg_name}", {arg_name}.to_string () }},'.format(arg_name=arg_name))
+                params.append('    {{ "{arg_name}", {arg_name} != null ? {arg_name}.to_string () : null }},'.format(arg_name=arg_name))
             
         params.insert(0, '{')
         params.append('},')
