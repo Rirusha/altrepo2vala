@@ -249,7 +249,7 @@ def format_body(path:str, param_args:dict[str,list[bool]], path_args:list[str], 
         out.append(f'return (string) bytes.get_data ();')
         return out
 
-    out.append('var jsoner = Jsoner.from_bytes (bytes, null, Case.SNAKE);\n')
+    out.append('var jsoner = new Jsoner.from_bytes (bytes, null, Case.SNAKE);\n')
 
     if return_type.startswith('Gee.ArrayList'):
         out.append(f'var array = new {return_type} ();')
